@@ -67,6 +67,84 @@
   font-size: 13px;
 }
 
+.pageTitle {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.adminTableWrapper {
+  margin-top: 24px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+
+.adminTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+  text-align: left;
+}
+
+.adminTable th,
+.adminTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.adminTable th {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.adminTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.memberList {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.memberList h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.memberRow span {
+  display: grid;
+  gap: 4px;
+}
+
+.memberRow small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dangerButton {
+  padding: 8px 10px;
+  border: 1px solid #f1b5b0;
+  border-radius: 7px;
+  color: #b42318;
+  background: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .accessCard {
   display: grid;
   gap: 16px;

@@ -87,6 +87,9 @@ export function WardAccountMenu({ wardName, role }: WardAccountMenuProps) {
       {open && (
         <div className={styles.accountPopover}>
           {error && <p className={styles.formError}>{error}</p>}
+          <button onClick={() => router.push("/admin/wards")}>
+            Ver alas cadastradas
+          </button>
           {role === "administrator" && (
             <button disabled={pending} onClick={() => void leaveWard()}>
               {pending ? "Aguarde..." : "Sair da ala"}

@@ -13,10 +13,17 @@ export async function GET() {
 
   if (membership?.role === "leader") {
     const invitations = await sql`
-      SELECT id, email, status, created_at AS "createdAt"
-      FROM ward_invitations
-      WHERE ward_id = ${membership.wardId}
-      ORDER BY created_at DESC
+      SELECT
+        wi.id,
+        wi.email,
+        wi.status,
+        wi.created_at AS "createdAt",
+        wm.status AS "memberStatus",
+        wm.role AS "memberRole"
+      FROM ward_invitations wi
+      LEFT JOIN ward_members wm ON wm.invitation_id = wi.id
+      WHERE wi.ward_id = ${membership.wardId}
+      ORDER BY wi.created_at DESC
     `;
     return NextResponse.json({ role: membership.role, invitations });
   }
@@ -81,12 +88,65 @@ export async function PATCH(request: Request) {
   }
 
   await sql`
-    INSERT INTO ward_members (ward_id, user_id, role)
-    VALUES (${invitation.wardId}, ${user.id}, 'administrator')
-    ON CONFLICT (ward_id, user_id) DO UPDATE SET status = 'active', role = 'administrator'
+    INSERT INTO ward_members (ward_id, user_id, role, invitation_id)
+    VALUES (${invitation.wardId}, ${user.id}, 'administrator', ${invitation.id})
+    ON CONFLICT (ward_id, user_id) DO UPDATE
+      SET status = 'active',
+          role = 'administrator',
+          invitation_id = ${invitation.id}
   `;
   await sql`
     UPDATE ward_invitations SET status = 'accepted' WHERE id = ${invitation.id}
+  `;
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser();
+  const membership = await getCurrentMembership();
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+  if (!membership) {
+    return NextResponse.json({ error: "Ala não encontrada." }, { status: 404 });
+  }
+  if (membership.role !== "leader") {
+    return NextResponse.json({ error: "Somente o líder pode desvincular membros." }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const invitationId = typeof body?.invitationId === "string" ? body.invitationId : "";
+
+  if (!invitationId) {
+    return NextResponse.json({ error: "Convite inválido." }, { status: 400 });
+  }
+
+  const rows = await sql`
+    SELECT id
+    FROM ward_invitations
+    WHERE id = ${invitationId}
+      AND ward_id = ${membership.wardId}
+      AND status = 'accepted'
+  `;
+
+  if (!rows[0]) {
+    return NextResponse.json({ error: "Membro não encontrado." }, { status: 404 });
+  }
+
+  await sql`
+    UPDATE ward_members
+    SET status = 'revoked'
+    WHERE ward_id = ${membership.wardId}
+      AND invitation_id = ${invitationId}
+      AND role = 'administrator'
+      AND status = 'active'
+  `;
+  await sql`
+    UPDATE ward_invitations
+    SET status = 'rejected'
+    WHERE id = ${invitationId}
   `;
 
   return NextResponse.json({ ok: true });

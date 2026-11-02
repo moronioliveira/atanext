@@ -8,6 +8,15 @@ export function WardAccessPanel() {
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState("");
   const [inviteLink, setInviteLink] = useState("");
+  const [invitations, setInvitations] = useState<
+    Array<{
+      id: string;
+      email: string;
+      status: string;
+      memberStatus?: string;
+      memberRole?: string;
+    }>
+  >([]);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -18,6 +27,7 @@ export function WardAccessPanel() {
       }
       const body = await response.json();
       setIsLeader(body.role === "leader");
+      setInvitations(body.invitations ?? []);
     }
 
     void loadAccess();
@@ -48,6 +58,34 @@ export function WardAccessPanel() {
     }
   }
 
+  async function revokeMember(invitationId: string) {
+    if (!window.confirm("Deseja realmente desvincular esta pessoa da ala?")) {
+      return;
+    }
+
+    setPending(true);
+    const response = await fetch("/api/invitations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invitationId }),
+    });
+
+    if (response.ok) {
+      setInvitations((current) =>
+        current.map((invitation) =>
+          invitation.id === invitationId
+            ? { ...invitation, status: "rejected", memberStatus: "revoked" }
+            : invitation,
+        ),
+      );
+      setNotice("Acesso desvinculado.");
+    } else {
+      const body = await response.json().catch(() => null);
+      setNotice(body?.error ?? "Não foi possível desvincular o acesso.");
+    }
+    setPending(false);
+  }
+
   return (
     <section className={styles.accessCard}>
       <div>
@@ -75,6 +113,35 @@ export function WardAccessPanel() {
           própria senha:{" "}
           <a href={inviteLink}>{inviteLink}</a>
         </p>
+      )}
+      {invitations.length > 0 && (
+        <div className={styles.memberList}>
+          <h4>Pessoas convidadas</h4>
+          {invitations.map((invitation) => (
+            <div className={styles.memberRow} key={invitation.id}>
+              <span>
+                <strong>{invitation.email}</strong>
+                <small>
+                  {invitation.status === "pending"
+                    ? "Convite pendente"
+                    : invitation.memberStatus === "active"
+                      ? "Ativo na ala"
+                      : "Desvinculado"}
+                </small>
+              </span>
+              {invitation.memberStatus === "active" &&
+                invitation.memberRole === "administrator" && (
+                  <button
+                    className={styles.dangerButton}
+                    disabled={pending}
+                    onClick={() => void revokeMember(invitation.id)}
+                  >
+                    Desvincular
+                  </button>
+                )}
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );
