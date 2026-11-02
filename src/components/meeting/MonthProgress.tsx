@@ -13,7 +13,7 @@ export function MonthProgress({ completedSundays }: MonthProgressProps) {
         <span style={{ width: `${completedSundays * 20}%` }} />
       </div>
       <span className={styles.progressHelp}>
-        As alterações ficam disponíveis neste navegador durante o protótipo.
+        As alterações são salvas no planejamento da sua ala.
       </span>
     </div>
   );

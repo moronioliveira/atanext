@@ -2,6 +2,113 @@
   min-height: 100vh;
 }
 
+.authShell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: var(--canvas);
+}
+
+.authCard {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 430px);
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.authCard h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.authCard label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.authCard input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: white;
+}
+
+.authHelp {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.authHelp a {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.formError {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+}
+
+.loadingNotice,
+.notice {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.accessCard {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+
+.accessCard h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.accessForm {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.accessForm label {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.accessForm input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .topbar {
   height: 78px;
   display: flex;
@@ -86,7 +193,7 @@
 }
 
 .avatar {
-  width: 36px;
+  min-width: 52px;
   height: 36px;
   border: 1px solid #4d718c;
   border-radius: 50%;
