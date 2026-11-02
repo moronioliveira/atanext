@@ -98,8 +98,8 @@ export default function OnboardingPage() {
         <h1>{invitationId ? "Aceitar convite" : "Cadastre sua ala"}</h1>
         {invitationId ? (
           <p className={styles.muted}>
-            Você foi convidado para administrar uma ala. Aceite o convite para
-            acessar os planejamentos.
+            Sua conta foi criada. Você recebeu um convite para administrar uma
+            ala; aceite-o para acessar os planejamentos.
           </p>
         ) : (
           <>

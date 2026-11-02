@@ -40,6 +40,11 @@ export default function SignInPage() {
       <form className={styles.authCard} onSubmit={submit}>
         <p className={`${styles.eyebrow} ${styles.accent}`}>Atas+</p>
         <h1>Entrar na sua ala</h1>
+        <p className={styles.muted}>
+          Já criou sua conta? Entre com o e-mail e a senha definidos no
+          cadastro. Se recebeu um convite e ainda não criou a conta, use a
+          opção abaixo primeiro.
+        </p>
         <label>
           E-mail
           <input
@@ -64,7 +69,7 @@ export default function SignInPage() {
           {pending ? "Entrando..." : "Entrar"}
         </button>
         <p className={styles.authHelp}>
-          Ainda não tem acesso? <Link href="/auth/sign-up">Criar conta da ala</Link>
+          Ainda não tem conta? <Link href="/auth/sign-up">Criar sua conta</Link>
         </p>
       </form>
     </main>
