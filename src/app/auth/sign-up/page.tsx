@@ -19,30 +19,35 @@ export default function SignUpPage() {
     setPending(true);
     setError("");
 
-    const result = await authClient.signUp.email({ name, email, password });
+    try {
+      const result = await authClient.signUp.email({ name, email, password });
 
-    if (result.error) {
-      setError("Não foi possível criar a conta. Verifique os dados informados.");
-      setPending(false);
-      return;
-    }
-
-    const session = await authClient.getSession();
-
-    if (!session.data?.user) {
-      const signInResult = await authClient.signIn.email({ email, password });
-
-      if (signInResult.error) {
-        setError(
-          "A conta foi criada, mas não foi possível iniciar a sessão. Entre pela tela de login.",
-        );
+      if (result.error) {
+        setError("Não foi possível criar a conta. Verifique os dados informados.");
         setPending(false);
         return;
       }
-    }
 
-    router.push("/onboarding");
-    router.refresh();
+      const session = await authClient.getSession();
+
+      if (!session.data?.user) {
+        const signInResult = await authClient.signIn.email({ email, password });
+
+        if (signInResult.error) {
+          setError(
+            "A conta foi criada, mas não foi possível iniciar a sessão. Entre pela tela de login.",
+          );
+          setPending(false);
+          return;
+        }
+      }
+
+      router.push("/onboarding");
+      router.refresh();
+    } catch {
+      setError("Não foi possível conectar à autenticação. Tente novamente.");
+      setPending(false);
+    }
   }
 
   return (

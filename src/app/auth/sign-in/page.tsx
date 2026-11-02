@@ -18,16 +18,21 @@ export default function SignInPage() {
     setPending(true);
     setError("");
 
-    const result = await authClient.signIn.email({ email, password });
+    try {
+      const result = await authClient.signIn.email({ email, password });
 
-    if (result.error) {
-      setError("Não foi possível entrar. Verifique o e-mail e a senha.");
+      if (result.error) {
+        setError("Não foi possível entrar. Verifique o e-mail e a senha.");
+        setPending(false);
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Não foi possível conectar à autenticação. Tente novamente.");
       setPending(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
