@@ -177,6 +177,75 @@
   gap: 20px;
 }
 
+.accountMenu {
+  position: relative;
+}
+
+.wardIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  color: white;
+  background: transparent;
+  text-align: left;
+}
+
+.wardIdentity .statusDot {
+  display: grid;
+  gap: 2px;
+  color: white;
+  font-size: 13px;
+}
+
+.wardIdentity .statusDot::before {
+  position: absolute;
+  top: 8px;
+  left: -13px;
+}
+
+.wardIdentity strong {
+  font-size: 13px;
+}
+
+.wardIdentity small {
+  color: #b7c9d8;
+  font-size: 11px;
+}
+
+.accountPopover {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 12px);
+  right: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 30px #102a4330;
+}
+
+.accountPopover button {
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+}
+
+.accountPopover button:hover {
+  background: var(--canvas);
+}
+
+.accountPopover .formError {
+  padding: 5px;
+  line-height: 1.4;
+}
+
 .statusDot {
   color: #b7e7ee;
   font-size: 12px;

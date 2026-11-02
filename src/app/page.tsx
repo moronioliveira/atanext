@@ -10,9 +10,9 @@ import { SundayTabs } from "@/components/meeting/SundayTabs";
 import styles from "@/components/meeting/meeting.module.css";
 import { hymns } from "@/data/hymns";
 import { filterSuggestions } from "@/lib/autocomplete";
-import { authClient } from "@/lib/auth/client";
 import { WardAccessPanel } from "@/components/ward/WardAccessPanel";
 import { PeoplePanel } from "@/components/ward/PeoplePanel";
+import { WardAccountMenu } from "@/components/ward/WardAccountMenu";
 import {
   createEmptyMonth,
   createEmptySunday,
@@ -37,9 +37,26 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState<string[]>([]);
+  const [ward, setWard] = useState<{
+    wardName: string;
+    role: "leader" | "administrator";
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
+
+    async function loadWard() {
+      const response = await fetch("/api/wards");
+
+      if (!response.ok) {
+        return;
+      }
+
+      const body = await response.json();
+      if (active && body.ward) {
+        setWard(body.ward);
+      }
+    }
 
     async function loadPlan() {
       setLoading(true);
@@ -66,6 +83,7 @@ export default function Home() {
       }
     }
 
+    void loadWard();
     void loadPlan();
 
     return () => {
@@ -157,14 +175,9 @@ export default function Home() {
           </div>
         </div>
         <div className={styles.topbarActions}>
-          <span className={styles.statusDot}>Dados salvos na ala</span>
-          <button
-            className={styles.avatar}
-            aria-label="Sair"
-            onClick={() => void authClient.signOut().then(() => router.push("/auth/sign-in"))}
-          >
-            Sair
-          </button>
+          {ward && (
+            <WardAccountMenu wardName={ward.wardName} role={ward.role} />
+          )}
         </div>
       </header>
 

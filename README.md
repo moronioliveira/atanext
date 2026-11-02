@@ -30,6 +30,11 @@ O primeiro cadastro cria a ala e atribui o papel de líder. O líder pode
 registrar convites para administradores. O convidado deve criar a conta usando
 o e-mail convidado e aceitar o convite na tela inicial.
 
+No cabeçalho, o nome da ala e o papel atual ficam disponíveis no menu da
+conta. Administradores podem sair da ala. O líder pode excluir a ala
+confirmando o nome exato; essa exclusão remove os planejamentos, membros e
+convites associados.
+
 ## Validação
 
 ```bash
