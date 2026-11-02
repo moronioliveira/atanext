@@ -32,9 +32,12 @@ senha usando o e-mail convidado e aceitar o convite na tela inicial. O link
 geral do site abre o login e só funciona depois que a conta já foi criada.
 
 No cabeçalho, o nome da ala e o papel atual ficam disponíveis no menu da
-conta. Administradores podem sair da ala. O líder pode excluir a ala
-confirmando o nome exato; essa exclusão remove os planejamentos, membros e
-convites associados.
+conta. Usuários autenticados podem consultar o resumo das alas cadastradas,
+sem acessar seus planejamentos. Administradores podem sair da ala. O líder
+visualiza os convites e membros da própria ala e pode desvincular
+administradores; essa ação revoga o acesso e preserva o histórico. O líder
+também pode excluir a ala confirmando o nome exato; essa exclusão remove os
+planejamentos, membros e convites associados.
 
 ## Validação
 
