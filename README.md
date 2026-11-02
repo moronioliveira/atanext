@@ -26,9 +26,10 @@ Depois, inicie o app:
 npm run dev
 ```
 
-O primeiro cadastro cria a ala e atribui o papel de líder. O líder pode
-registrar convites para administradores. O convidado deve criar a conta usando
-o e-mail convidado e aceitar o convite na tela inicial.
+O primeiro cadastro cria a ala e atribui o papel de líder. O líder pode registrar convites para administradores. Após registrar o convite,
+envie à pessoa o link de cadastro exibido na tela. Ela deverá criar a própria
+senha usando o e-mail convidado e aceitar o convite na tela inicial. O link
+geral do site abre o login e só funciona depois que a conta já foi criada.
 
 No cabeçalho, o nome da ala e o papel atual ficam disponíveis no menu da
 conta. Administradores podem sair da ala. O líder pode excluir a ala
