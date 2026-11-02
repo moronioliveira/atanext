@@ -1,69 +1,144 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useState } from "react";
+import { MonthHeader } from "@/components/meeting/MonthHeader";
+import { MonthProgress } from "@/components/meeting/MonthProgress";
+import { PrintPreview } from "@/components/meeting/PrintPreview";
+import { ScheduleEditor } from "@/components/meeting/ScheduleEditor";
+import { SundayTabs } from "@/components/meeting/SundayTabs";
+import styles from "@/components/meeting/meeting.module.css";
+import { demoMembers } from "@/data/demo-members";
+import { hymns } from "@/data/hymns";
+import { filterSuggestions } from "@/lib/autocomplete";
+import {
+  createEmptyMonth,
+  createEmptySunday,
+  getSundayDates,
+  hasScheduleContent,
+} from "@/lib/meeting-utils";
+import {
+  isHymnRole,
+  type RoleKey,
+  type SundaySchedule,
+} from "@/types/meeting";
 
 export default function Home() {
+  const [month, setMonth] = useState("2026-11");
+  const [selectedSunday, setSelectedSunday] = useState(0);
+  const [sundays, setSundays] = useState<SundaySchedule[]>(createEmptyMonth);
+  const [activeRole, setActiveRole] = useState<RoleKey | null>(null);
+  const [search, setSearch] = useState("");
+  const [preview, setPreview] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  const dates = useMemo(() => getSundayDates(month), [month]);
+  const selectedData = sundays[selectedSunday];
+  const completedSundays = sundays.filter(hasScheduleContent).length;
+
+  function getSuggestions(roleKey: RoleKey) {
+    if (activeRole !== roleKey || search.length < 2) {
+      return [];
+    }
+
+    const source = isHymnRole(roleKey) ? hymns : demoMembers;
+
+    return filterSuggestions(source, search);
+  }
+
+  function updateRole(roleKey: RoleKey, value: string) {
+    setSundays((current) =>
+      current.map((sunday, index) =>
+        index === selectedSunday
+          ? { ...sunday, [roleKey]: value }
+          : sunday,
+      ),
+    );
+    setActiveRole(roleKey);
+    setSearch(value);
+  }
+
+  function focusRole(roleKey: RoleKey, value: string) {
+    setActiveRole(roleKey);
+    setSearch(value);
+  }
+
+  function selectSunday(index: number) {
+    setSelectedSunday(index);
+    setActiveRole(null);
+    setSearch("");
+  }
+
+  function saveDraft() {
+    setNotice("Rascunho atualizado neste protótipo.");
+    window.setTimeout(() => setNotice(""), 3000);
+  }
+
+  function clearSunday() {
+    setSundays((current) =>
+      current.map((sunday, index) =>
+        index === selectedSunday ? createEmptySunday() : sunday,
+      ),
+    );
+    setActiveRole(null);
+    setSearch("");
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className={styles.appShell}>
+      <header className={`${styles.topbar} ${styles.noPrint}`}>
+        <div className={styles.brand}>
+          <div className={styles.brandMark}>A</div>
+          <div>
+            <p className={styles.eyebrow}>Organização de reuniões</p>
+            <h1>
+              Atas<span>+</span>
+            </h1>
+          </div>
+        </div>
+        <div className={styles.topbarActions}>
+          <span className={styles.statusDot}>Protótipo local</span>
+          <button className={styles.avatar} aria-label="Perfil">
+            MO
+          </button>
+        </div>
+      </header>
+
+      <section className={`${styles.workspace} ${styles.noPrint}`}>
+        <MonthHeader month={month} onMonthChange={setMonth} />
+        <MonthProgress completedSundays={completedSundays} />
+        <SundayTabs
+          dates={dates}
+          schedules={sundays}
+          selectedSunday={selectedSunday}
+          onSelect={selectSunday}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        <div className={styles.editorGrid}>
+          <ScheduleEditor
+            sundayNumber={selectedSunday + 1}
+            schedule={selectedData}
+            suggestions={getSuggestions}
+            onChange={updateRole}
+            onFocus={(roleKey, event) =>
+              focusRole(roleKey, event.currentTarget.value)
+            }
+            onSelect={updateRole}
+            onClear={clearSunday}
+            onPreview={() => setPreview(true)}
+            onSave={saveDraft}
+            notice={notice}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      {preview && (
+        <PrintPreview
+          data={selectedData}
+          date={dates[selectedSunday] ?? null}
+          sunday={selectedSunday + 1}
+          onClose={() => setPreview(false)}
+        />
+      )}
+    </main>
   );
 }
