@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import styles from "@/components/meeting/meeting.module.css";
@@ -22,10 +23,12 @@ function getSignUpErrorMessage(error: { status?: number; code?: string }) {
   return "Não foi possível criar a conta. Verifique os dados informados.";
 }
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const invitedEmail = searchParams.get("email")?.trim().toLowerCase() ?? "";
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(invitedEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -70,7 +73,11 @@ export default function SignUpPage() {
     <main className={styles.authShell}>
       <form className={styles.authCard} onSubmit={submit}>
         <p className={`${styles.eyebrow} ${styles.accent}`}>Atas+</p>
-        <h1>Criar conta da ala</h1>
+        <h1>Criar sua conta</h1>
+        <p className={styles.muted}>
+          Crie sua senha para acessar a ala. Se você recebeu um convite, use o
+          mesmo e-mail indicado nele.
+        </p>
         <label>
           Seu nome
           <input required value={name} onChange={(event) => setName(event.target.value)} />
@@ -92,5 +99,13 @@ export default function SignUpPage() {
         </p>
       </form>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
   );
 }

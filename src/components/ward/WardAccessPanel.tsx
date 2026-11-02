@@ -7,6 +7,7 @@ export function WardAccessPanel() {
   const [isLeader, setIsLeader] = useState(false);
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -38,12 +39,11 @@ export function WardAccessPanel() {
     });
 
     setPending(false);
-    setNotice(
-      response.ok
-        ? "Convite registrado. Avise a pessoa para criar a conta com este e-mail."
-        : "Não foi possível registrar o convite.",
-    );
+    setNotice(response.ok ? "Convite registrado." : "Não foi possível registrar o convite.");
     if (response.ok) {
+      const signUpUrl = new URL("/auth/sign-up", window.location.origin);
+      signUpUrl.searchParams.set("email", email.trim().toLowerCase());
+      setInviteLink(signUpUrl.toString());
       setEmail("");
     }
   }
@@ -69,6 +69,13 @@ export function WardAccessPanel() {
         </button>
       </form>
       {notice && <p className={styles.notice}>{notice}</p>}
+      {inviteLink && (
+        <p className={styles.notice}>
+          Envie este link para a pessoa convidada criar a conta e definir a
+          própria senha:{" "}
+          <a href={inviteLink}>{inviteLink}</a>
+        </p>
+      )}
     </section>
   );
 }
