@@ -6,6 +6,22 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import styles from "@/components/meeting/meeting.module.css";
 
+function getSignUpErrorMessage(error: { status?: number; code?: string }) {
+  if (
+    error.status === 422 ||
+    error.code === "USER_ALREADY_EXISTS" ||
+    error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"
+  ) {
+    return "Este e-mail já está cadastrado. Entre pela tela de login.";
+  }
+
+  if (error.status === 400 || error.code === "VALIDATION_ERROR") {
+    return "Confira seu nome, e-mail e senha e tente novamente.";
+  }
+
+  return "Não foi possível criar a conta. Verifique os dados informados.";
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -23,7 +39,7 @@ export default function SignUpPage() {
       const result = await authClient.signUp.email({ name, email, password });
 
       if (result.error) {
-        setError("Não foi possível criar a conta. Verifique os dados informados.");
+        setError(getSignUpErrorMessage(result.error));
         setPending(false);
         return;
       }
