@@ -118,21 +118,50 @@ export async function DELETE(request: Request) {
 
   const body = await request.json().catch(() => null);
   const invitationId = typeof body?.invitationId === "string" ? body.invitationId : "";
+  const action = body?.action === "delete" ? "delete" : "revoke";
 
   if (!invitationId) {
     return NextResponse.json({ error: "Convite inválido." }, { status: 400 });
   }
 
   const rows = await sql`
-    SELECT id
+    SELECT id, status
     FROM ward_invitations
     WHERE id = ${invitationId}
       AND ward_id = ${membership.wardId}
-      AND status = 'accepted'
+      AND status IN ('accepted', 'rejected')
   `;
 
   if (!rows[0]) {
     return NextResponse.json({ error: "Membro não encontrado." }, { status: 404 });
+  }
+
+  if (action === "delete") {
+    if (rows[0].status !== "rejected") {
+      return NextResponse.json(
+        { error: "Somente registros desvinculados podem ser excluídos." },
+        { status: 409 },
+      );
+    }
+
+    await sql`
+      DELETE FROM ward_members
+      WHERE ward_id = ${membership.wardId}
+        AND invitation_id = ${invitationId}
+        AND status = 'revoked'
+    `;
+    await sql`
+      DELETE FROM ward_invitations
+      WHERE id = ${invitationId}
+        AND ward_id = ${membership.wardId}
+        AND status = 'rejected'
+    `;
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (rows[0].status !== "accepted") {
+    return NextResponse.json({ error: "Membro já está desvinculado." }, { status: 409 });
   }
 
   await sql`

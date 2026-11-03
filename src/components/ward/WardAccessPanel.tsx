@@ -41,6 +41,7 @@ export function WardAccessPanel() {
     event.preventDefault();
     setPending(true);
     setNotice("");
+    setInvitations((current) => [...current, { id: "", email, status: "pending" }]);
 
     const response = await fetch("/api/invitations", {
       method: "POST",
@@ -51,6 +52,13 @@ export function WardAccessPanel() {
     setPending(false);
     setNotice(response.ok ? "Convite registrado." : "Não foi possível registrar o convite.");
     if (response.ok) {
+      setInvitations((current) =>
+        current.map((invitation) =>
+          invitation.email === email
+            ? { ...invitation, status: "accepted" }
+            : invitation,
+        ),
+      );
       const signUpUrl = new URL("/auth/sign-up", window.location.origin);
       signUpUrl.searchParams.set("email", email.trim().toLowerCase());
       setInviteLink(signUpUrl.toString());
@@ -82,6 +90,30 @@ export function WardAccessPanel() {
     } else {
       const body = await response.json().catch(() => null);
       setNotice(body?.error ?? "Não foi possível desvincular o acesso.");
+    }
+    setPending(false);
+  }
+
+  async function deleteMemberRecord(invitationId: string) {
+    if (!window.confirm("Deseja excluir definitivamente este registro da ala?")) {
+      return;
+    }
+
+    setPending(true);
+    const response = await fetch("/api/invitations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invitationId, action: "delete" }),
+    });
+
+    if (response.ok) {
+      setInvitations((current) =>
+        current.filter((invitation) => invitation.id !== invitationId),
+      );
+      setNotice("Registro excluído da ala.");
+    } else {
+      const body = await response.json().catch(() => null);
+      setNotice(body?.error ?? "Não foi possível excluir o registro.");
     }
     setPending(false);
   }
@@ -129,14 +161,26 @@ export function WardAccessPanel() {
                       : "Desvinculado"}
                 </small>
               </span>
-              {invitation.memberStatus === "active" &&
-                invitation.memberRole === "administrator" && (
+              {invitation.status === "accepted" &&
+                invitation.memberStatus === "active" && (
                   <button
+                    type="button"
                     className={styles.dangerButton}
                     disabled={pending}
                     onClick={() => void revokeMember(invitation.id)}
                   >
                     Desvincular
+                  </button>
+                )}
+              {invitation.status === "rejected" &&
+                invitation.memberStatus === "revoked" && (
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    disabled={pending}
+                    onClick={() => void deleteMemberRecord(invitation.id)}
+                  >
+                    Excluir registro
                   </button>
                 )}
             </div>
