@@ -756,60 +756,93 @@
   font-size: 11px;
 }
 
-.printPage {
-  width: 210mm;
-  height: 297mm;
+/*
+ * A folha tem tamanho fixo de A4 (com 1mm de folga para evitar que o
+ * navegador crie uma segunda página por arredondamento). O tamanho da
+ * fonte é calculado por usePrintFit e aplicado em --print-font-size;
+ * todos os textos da ata usam "em" para crescer junto com ele.
+ */
+.printStage {
+  width: min(210mm, calc(100% - 24px));
+  height: var(--preview-height, auto);
   margin: 15px auto 50px;
-  padding: 22mm 20mm;
+}
+
+.printPage {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 296mm;
+  padding: 14mm 16mm;
+  overflow: hidden;
   color: #111;
   background: white;
   box-shadow: 0 15px 40px #0005;
   font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--print-font-size, 14px);
+  line-height: 1.3;
+  transform: scale(var(--preview-scale, 1));
+  transform-origin: top left;
 }
 
 .printHeader {
-  padding-bottom: 16px;
-  border-bottom: 1px solid #111;
+  flex: 0 0 auto;
+  padding-bottom: 0.8em;
+  border-bottom: 2px solid #111;
   text-align: center;
 }
 
 .printHeader p {
-  margin: 0 0 4px;
-  font-size: 11px;
+  margin: 0 0 0.25em;
+  font-size: 1.05em;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .printHeader h1 {
-  margin: 0 0 13px;
-  font-size: 21px;
+  margin: 0 0 0.35em;
+  font-size: 1.9em;
 }
 
 .printHeader span {
-  font-size: 10px;
+  font-size: 1em;
+}
+
+.printBody {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
 }
 
 .printSection {
-  padding: 9px 0;
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 0.5em 0;
   border-bottom: 1px solid #777;
 }
 
+.printSection:last-child {
+  border-bottom: 0;
+}
+
 .printSection h2 {
-  margin: 0 0 9px;
-  font-size: 11px;
+  margin: 0 0 0.3em;
+  font-size: 1.05em;
   text-transform: uppercase;
 }
 
 .printRow {
   display: flex;
-  gap: 7px;
+  gap: 0.6em;
   align-items: baseline;
-  padding: 2px 0;
-  font-size: 9px;
-  line-height: 1.25;
+  padding: 0.15em 0;
 }
 
 .printRow strong {
-  min-width: 145px;
+  flex: 0 0 12em;
 }
 
 .printRow span {
@@ -820,8 +853,9 @@
 }
 
 .printNote {
-  margin: 6px 0 0;
-  font-size: 8px;
+  margin: 0.3em 0 0;
+  font-size: 0.9em;
+  font-style: italic;
 }
 
 @media (max-width: 760px) {
@@ -878,13 +912,8 @@
     justify-content: center;
   }
 
-  .printPage {
-    width: calc(100% - 24px);
-    height: auto;
-    min-height: 0;
+  .printStage {
     margin: 10px auto 30px;
-    padding: 35px 22px;
-    overflow: visible;
   }
 }
 
@@ -898,12 +927,21 @@
     background: white;
   }
 
-  .printPage {
-    width: 210mm;
-    height: 277mm;
+  .appShell {
+    min-height: 0;
+  }
+
+  .printStage {
+    width: auto;
+    height: auto;
     margin: 0;
-    padding: 12mm 16mm;
+  }
+
+  .printPage {
     box-shadow: none;
+    transform: none;
+    break-after: avoid;
+    break-inside: avoid;
   }
 
   @page {
