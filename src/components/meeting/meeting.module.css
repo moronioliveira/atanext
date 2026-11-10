@@ -874,6 +874,12 @@
   overflow-wrap: anywhere;
 }
 
+.printEmpty {
+  margin: auto 0;
+  color: #666;
+  text-align: center;
+}
+
 .printNote {
   margin: 0.3em 0 0;
   font-size: 0.9em;
