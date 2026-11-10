@@ -831,23 +831,34 @@
 .printSection h2 {
   margin: 0 0 0.3em;
   font-size: 1.05em;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
+/*
+ * Cada item fica separado por espaço e por uma linha pontilhada clara,
+ * para que textos de várias linhas não se misturem com o item seguinte.
+ */
 .printRow {
   display: flex;
-  gap: 0.6em;
+  gap: 0.8em;
   align-items: baseline;
-  padding: 0.15em 0;
+  padding: 0.45em 0;
+  border-bottom: 1px dotted #b8b8b8;
+}
+
+.printRow:last-of-type {
+  border-bottom: 0;
 }
 
 .printRow strong {
-  flex: 0 0 12em;
+  flex: 0 0 11em;
 }
 
 .printRow span {
   display: block;
   flex: 1;
+  line-height: 1.35;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
