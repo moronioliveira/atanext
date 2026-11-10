@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MonthHeader } from "@/components/meeting/MonthHeader";
 import { MonthProgress } from "@/components/meeting/MonthProgress";
@@ -12,10 +12,12 @@ import { hymns } from "@/data/hymns";
 import { filterSuggestions } from "@/lib/autocomplete";
 import { WardAccessPanel } from "@/components/ward/WardAccessPanel";
 import { PeoplePanel } from "@/components/ward/PeoplePanel";
+import { usePeople } from "@/components/ward/usePeople";
 import { WardAccountMenu } from "@/components/ward/WardAccountMenu";
 import {
   createEmptyMonth,
   createEmptySunday,
+  getSaveNotice,
   getSundayDates,
   hasScheduleContent,
 } from "@/lib/meeting-utils";
@@ -36,7 +38,7 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [members, setMembers] = useState<string[]>([]);
+  const peopleStore = usePeople();
   const [ward, setWard] = useState<{
     wardName: string;
     role: "leader" | "administrator";
@@ -91,10 +93,6 @@ export default function Home() {
     };
   }, [month, router]);
 
-  const updateMembers = useCallback((nextMembers: string[]) => {
-    setMembers(nextMembers);
-  }, []);
-
   const dates = useMemo(() => getSundayDates(month), [month]);
   const selectedData = sundays[selectedSunday];
   const completedSundays = sundays.filter(hasScheduleContent).length;
@@ -104,7 +102,7 @@ export default function Home() {
       return [];
     }
 
-    const source = isHymnRole(roleKey) ? hymns : members;
+    const source = isHymnRole(roleKey) ? hymns : peopleStore.names;
 
     return filterSuggestions(source, search);
   }
@@ -149,7 +147,11 @@ export default function Home() {
       return;
     }
 
-    setNotice("Planejamento salvo com sucesso.");
+    const body = await response.json();
+    const addedPeople = Array.isArray(body.addedPeople) ? body.addedPeople : [];
+
+    peopleStore.mergePeople(addedPeople);
+    setNotice(getSaveNotice(addedPeople.length));
   }
 
   function clearSunday() {
@@ -185,7 +187,7 @@ export default function Home() {
         {loading && <p className={styles.loadingNotice}>Carregando planejamento salvo...</p>}
         <MonthHeader month={month} onMonthChange={setMonth} />
         <MonthProgress completedSundays={completedSundays} />
-        <PeoplePanel onPeopleChange={updateMembers} />
+        <PeoplePanel store={peopleStore} />
         <WardAccessPanel />
         <SundayTabs
           dates={dates}

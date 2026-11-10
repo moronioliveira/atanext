@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAuthConfiguration, auth } from "@/lib/auth/server";
 import { sql } from "@/lib/db";
+import { collectPersonNames } from "@/lib/people";
 import { getCurrentMembership } from "@/lib/ward";
 import type { SundaySchedule } from "@/types/meeting";
 import { meetingRoles } from "@/types/meeting";
@@ -64,13 +65,33 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Dados do planejamento inválidos." }, { status: 400 });
   }
 
-  const rows = await sql`
-    INSERT INTO meeting_plans (ward_id, month, sundays, created_by)
-    VALUES (${membership.wardId}, ${`${month}-01`}, ${JSON.stringify(sundays)}, ${session.user.id})
-    ON CONFLICT (ward_id, month)
-    DO UPDATE SET sundays = EXCLUDED.sundays, updated_at = now()
-    RETURNING id, updated_at AS "updatedAt"
-  `;
+  const personNames = collectPersonNames(sundays);
 
-  return NextResponse.json({ plan: rows[0] });
+  // O planejamento e os novos membros são gravados juntos: se um falhar,
+  // nenhum dos dois é salvo.
+  const [planRows, addedPeople] = await sql.transaction([
+    sql`
+      INSERT INTO meeting_plans (ward_id, month, sundays, created_by)
+      VALUES (
+        ${membership.wardId},
+        ${`${month}-01`},
+        ${JSON.stringify(sundays)},
+        ${session.user.id}
+      )
+      ON CONFLICT (ward_id, month)
+      DO UPDATE SET sundays = EXCLUDED.sundays, updated_at = now()
+      RETURNING id, updated_at AS "updatedAt"
+    `,
+    sql`
+      INSERT INTO ward_people (ward_id, name)
+      SELECT ${membership.wardId}, unnest(${personNames}::text[])
+      ON CONFLICT (ward_id, lower(name)) DO NOTHING
+      RETURNING id, name
+    `,
+  ]);
+
+  return NextResponse.json({
+    plan: planRows[0],
+    addedPeople,
+  });
 }

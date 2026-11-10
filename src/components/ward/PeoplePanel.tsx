@@ -1,65 +1,37 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useState, type FormEvent } from "react";
 import styles from "@/components/meeting/meeting.module.css";
-
-type Person = {
-  id: string;
-  name: string;
-};
+import {
+  PERSON_NAME_MAX_LENGTH,
+  PERSON_NAME_MIN_LENGTH,
+} from "@/lib/people";
+import type { PeopleStore } from "./usePeople";
+import { PeopleList } from "./PeopleList";
 
 type PeoplePanelProps = {
-  onPeopleChange: (people: string[]) => void;
+  store: PeopleStore;
 };
 
-export function PeoplePanel({ onPeopleChange }: PeoplePanelProps) {
-  const [people, setPeople] = useState<Person[]>([]);
+export function PeoplePanel({ store }: PeoplePanelProps) {
   const [name, setName] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
-
-  const names = useMemo(() => people.map((person) => person.name), [people]);
-
-  useEffect(() => {
-    async function loadPeople() {
-      const response = await fetch("/api/people");
-      if (!response.ok) {
-        return;
-      }
-
-      const body = await response.json();
-      const loadedPeople = Array.isArray(body.people) ? body.people : [];
-      setPeople(loadedPeople);
-      onPeopleChange(loadedPeople.map((person: Person) => person.name));
-    }
-
-    void loadPeople();
-  }, [onPeopleChange]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setNotice("");
 
-    const response = await fetch("/api/people", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
+    const result = await store.addPerson(name);
 
-    const body = await response.json();
     setPending(false);
 
-    if (!response.ok) {
-      setNotice(body.error ?? "Não foi possível cadastrar o membro.");
+    if (result.error) {
+      setNotice(result.error);
       return;
     }
 
-    const updatedPeople = [...people, body.person].sort((a: Person, b: Person) =>
-      a.name.localeCompare(b.name, "pt-BR"),
-    );
-    setPeople(updatedPeople);
-    onPeopleChange(updatedPeople.map((person) => person.name));
     setName("");
     setNotice("Membro cadastrado.");
   }
@@ -69,14 +41,18 @@ export function PeoplePanel({ onPeopleChange }: PeoplePanelProps) {
       <div>
         <p className={`${styles.eyebrow} ${styles.accent}`}>Cadastro da ala</p>
         <h3>Membros reutilizáveis</h3>
+        <p className={styles.muted}>
+          Os nomes digitados nas designações do domingo também entram nesta
+          lista ao salvar o planejamento.
+        </p>
       </div>
       <form className={styles.accessForm} onSubmit={submit}>
         <label>
           Nome completo
           <input
             required
-            minLength={2}
-            maxLength={160}
+            minLength={PERSON_NAME_MIN_LENGTH}
+            maxLength={PERSON_NAME_MAX_LENGTH}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -85,10 +61,30 @@ export function PeoplePanel({ onPeopleChange }: PeoplePanelProps) {
           {pending ? "Cadastrando..." : "Cadastrar membro"}
         </button>
       </form>
-      {names.length > 0 && (
-        <p className={styles.muted}>{names.length} membro(s) disponível(is) no autocomplete.</p>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
       )}
-      {notice && <p className={styles.notice} role="status">{notice}</p>}
+
+      {store.loading && (
+        <p className={styles.muted}>Carregando membros...</p>
+      )}
+      {store.loadError && (
+        <p className={styles.notice} role="alert">
+          {store.loadError}
+        </p>
+      )}
+      {!store.loading && !store.loadError && store.people.length === 0 && (
+        <p className={styles.muted}>Nenhum membro salvo ainda.</p>
+      )}
+      {store.people.length > 0 && (
+        <PeopleList
+          people={store.people}
+          onRename={store.renamePerson}
+          onRemove={store.removePerson}
+        />
+      )}
     </section>
   );
 }

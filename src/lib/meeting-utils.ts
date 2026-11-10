@@ -103,3 +103,15 @@ export function getPrintableSections(
     }))
     .filter((section) => section.roles.length > 0);
 }
+
+export function getSaveNotice(addedPeopleCount: number) {
+  if (addedPeopleCount === 0) {
+    return "Planejamento salvo com sucesso.";
+  }
+
+  if (addedPeopleCount === 1) {
+    return "Planejamento salvo com sucesso. 1 novo membro foi adicionado à lista.";
+  }
+
+  return `Planejamento salvo com sucesso. ${addedPeopleCount} novos membros foram adicionados à lista.`;
+}
