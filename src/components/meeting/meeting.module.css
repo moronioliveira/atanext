@@ -821,18 +821,29 @@
   flex-direction: column;
   justify-content: space-around;
   padding: 0.5em 0;
-  border-bottom: 1px solid #777;
 }
 
-.printSection:last-child {
-  border-bottom: 0;
-}
-
+/*
+ * Título centralizado entre duas linhas: marca o início de cada seção
+ * sem depender de cor de fundo, que pode sair fraca na impressão.
+ */
 .printSection h2 {
-  margin: 0 0 0.3em;
-  font-size: 1.05em;
+  display: flex;
+  gap: 0.8em;
+  align-items: center;
+  margin: 0.2em 0 0.4em;
+  font-size: 1.1em;
   font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
   text-transform: uppercase;
+}
+
+.printSection h2::before,
+.printSection h2::after {
+  flex: 1;
+  border-top: 1px solid #555;
+  content: "";
 }
 
 /*
