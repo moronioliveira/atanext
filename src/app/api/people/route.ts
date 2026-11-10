@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertAuthConfiguration } from "@/lib/auth/server";
 import { sql } from "@/lib/db";
+import { normalizePersonName, validatePersonName } from "@/lib/people";
 import { getCurrentMembership } from "@/lib/ward";
 
 export async function GET() {
@@ -30,13 +31,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const name = normalizePersonName(
+    typeof body.name === "string" ? body.name : "",
+  );
+  const validationError = validatePersonName(name);
 
-  if (name.length < 2 || name.length > 160) {
-    return NextResponse.json(
-      { error: "Informe um nome válido, entre 2 e 160 caracteres." },
-      { status: 400 },
-    );
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
   const people = await sql`

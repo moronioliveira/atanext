@@ -44,6 +44,21 @@ O líder
 também pode excluir a ala confirmando o nome exato; essa exclusão remove os
 planejamentos, membros e convites associados.
 
+## Membros reutilizáveis
+
+Cada ala tem a própria lista de membros, usada no autocomplete das
+designações. Além do cadastro manual, ao salvar o planejamento os nomes
+digitados em Presidida, Dirigida, Reconhecimentos, Regente, Organista,
+orações e oradores são adicionados automaticamente à lista, sem duplicar
+nomes já existentes (maiúsculas e minúsculas são ignoradas). O texto entre
+parênteses é descartado e várias pessoas no mesmo campo podem ser separadas
+por `&`, `/`, `;` ou quebra de linha. Trechos com números ou longos demais
+para um nome, como frases de reconhecimento, não são cadastrados.
+
+Líder e administradores podem buscar, renomear e excluir membros da lista
+da própria ala. Planejamentos e atas já salvos guardam o texto digitado e
+não são alterados por essas ações.
+
 ## Validação
 
 ```bash
