@@ -3,12 +3,9 @@
 import {
   formatLongDate,
   formatShortDate,
+  getPrintableSections,
 } from "@/lib/meeting-utils";
-import {
-  getMeetingGroups,
-  getMeetingRoles,
-  type SundaySchedule,
-} from "@/types/meeting";
+import type { SundaySchedule } from "@/types/meeting";
 import styles from "./meeting.module.css";
 import { usePreviewScale, usePrintFit } from "./usePrintFit";
 
@@ -25,8 +22,7 @@ export function PrintPreview({
   sunday,
   onClose,
 }: PrintPreviewProps) {
-  const roles = getMeetingRoles(sunday);
-  const groups = getMeetingGroups(sunday);
+  const sections = getPrintableSections(data, sunday);
   const { stageRef, pageRef } = usePreviewScale<HTMLElement>();
   const contentKey = JSON.stringify({ data, sunday });
 
@@ -62,19 +58,20 @@ export function PrintPreview({
             </span>
           </header>
           <div className={styles.printBody}>
-            {groups.map((group) => (
+            {sections.length === 0 && (
+              <p className={`${styles.printEmpty} ${styles.noPrint}`}>
+                Nenhum campo deste domingo foi preenchido.
+              </p>
+            )}
+            {sections.map(({ group, roles }) => (
               <section className={styles.printSection} key={group}>
                 <h2>{group}</h2>
-                {roles
-                  .filter((role) => role.group === group)
-                  .map((role) => (
-                    <div className={styles.printRow} key={role.key}>
-                      <strong>{role.label}:</strong>
-                      <span>
-                        {data[role.key] || "________________________________________"}
-                      </span>
-                    </div>
-                  ))}
+                {roles.map((role) => (
+                  <div className={styles.printRow} key={role.key}>
+                    <strong>{role.label}:</strong>
+                    <span>{role.value}</span>
+                  </div>
+                ))}
                 {group === "Sacramento" && (
                   <p className={styles.printNote}>
                     Após o hino o sacramento será abençoado e distribuído a todos.
