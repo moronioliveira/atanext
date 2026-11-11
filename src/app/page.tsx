@@ -7,6 +7,7 @@ import { MonthProgress } from "@/components/meeting/MonthProgress";
 import { PrintPreview } from "@/components/meeting/PrintPreview";
 import { ScheduleEditor } from "@/components/meeting/ScheduleEditor";
 import { SundayTabs } from "@/components/meeting/SundayTabs";
+import { useInitialSunday } from "@/components/meeting/useInitialSunday";
 import styles from "@/components/meeting/meeting.module.css";
 import { hymns } from "@/data/hymns";
 import { filterSuggestions } from "@/lib/autocomplete";
@@ -29,14 +30,20 @@ import {
 
 export default function Home() {
   const router = useRouter();
-  const [month, setMonth] = useState("2026-11");
-  const [selectedSunday, setSelectedSunday] = useState(0);
+  // Até o usuário escolher outro mês ou domingo, a tela abre no próximo
+  // domingo do calendário. `month` fica nulo até a data do navegador ser lida.
+  const initialSunday = useInitialSunday();
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const [chosenSunday, setChosenSunday] = useState<number | null>(null);
+  const month = chosenMonth ?? initialSunday?.month ?? null;
+  const selectedSunday = chosenSunday ?? initialSunday?.sundayIndex ?? 0;
   const [sundays, setSundays] = useState<SundaySchedule[]>(createEmptyMonth);
   const [activeRole, setActiveRole] = useState<RoleKey | null>(null);
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState(false);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const peopleStore = usePeople();
   const [ward, setWard] = useState<{
@@ -60,9 +67,14 @@ export default function Home() {
       }
     }
 
-    async function loadPlan() {
+    async function loadPlan(planMonth: string) {
+      // Limpa os dados do mês anterior para que eles não apareçam (nem
+      // sejam salvos) no mês novo enquanto o planejamento carrega ou
+      // quando o mês ainda não tem planejamento salvo.
+      setSundays(createEmptyMonth());
+      setLoadFailed(false);
       setLoading(true);
-      const response = await fetch(`/api/plans?month=${month}`);
+      const response = await fetch(`/api/plans?month=${planMonth}`);
 
       if (response.status === 403) {
         router.push("/onboarding");
@@ -70,8 +82,11 @@ export default function Home() {
       }
 
       if (!response.ok) {
-        setNotice("Não foi possível carregar o planejamento salvo.");
-        setLoading(false);
+        if (active) {
+          setNotice("Não foi possível carregar o planejamento salvo.");
+          setLoadFailed(true);
+          setLoading(false);
+        }
         return;
       }
 
@@ -86,14 +101,17 @@ export default function Home() {
     }
 
     void loadWard();
-    void loadPlan();
+
+    if (month) {
+      void loadPlan(month);
+    }
 
     return () => {
       active = false;
     };
   }, [month, router]);
 
-  const dates = useMemo(() => getSundayDates(month), [month]);
+  const dates = useMemo(() => (month ? getSundayDates(month) : []), [month]);
   const selectedData = sundays[selectedSunday];
   const completedSundays = sundays.filter(hasScheduleContent).length;
 
@@ -125,12 +143,24 @@ export default function Home() {
   }
 
   function selectSunday(index: number) {
-    setSelectedSunday(index);
+    setChosenSunday(index);
     setActiveRole(null);
     setSearch("");
   }
 
   async function saveDraft() {
+    if (!month || loading) {
+      return;
+    }
+
+    // Sem o planejamento carregado, salvar sobrescreveria o mês com campos vazios.
+    if (loadFailed) {
+      setNotice(
+        "O planejamento deste mês não foi carregado. Recarregue a página antes de salvar.",
+      );
+      return;
+    }
+
     setSaving(true);
     setNotice("");
 
@@ -185,7 +215,7 @@ export default function Home() {
 
       <section className={`${styles.workspace} ${styles.noPrint}`}>
         {loading && <p className={styles.loadingNotice}>Carregando planejamento salvo...</p>}
-        <MonthHeader month={month} onMonthChange={setMonth} />
+        <MonthHeader month={month ?? ""} onMonthChange={setChosenMonth} />
         <MonthProgress completedSundays={completedSundays} />
         <PeoplePanel store={peopleStore} />
         <WardAccessPanel />

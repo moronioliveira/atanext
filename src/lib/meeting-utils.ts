@@ -115,3 +115,32 @@ export function getSaveNotice(addedPeopleCount: number) {
 
   return `Planejamento salvo com sucesso. ${addedPeopleCount} novos membros foram adicionados à lista.`;
 }
+
+export type SundaySelection = {
+  month: string;
+  sundayIndex: number;
+};
+
+function formatMonthKey(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  return `${date.getFullYear()}-${month}`;
+}
+
+/**
+ * Retorna o mês e a posição (0 a 4) do próximo domingo a partir de
+ * `today`. Se `today` já for domingo, ele próprio é escolhido.
+ */
+export function getNextSundaySelection(today: Date): SundaySelection {
+  const daysUntilSunday = (7 - today.getDay()) % 7;
+  const nextSunday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + daysUntilSunday,
+  );
+
+  return {
+    month: formatMonthKey(nextSunday),
+    sundayIndex: Math.floor((nextSunday.getDate() - 1) / 7),
+  };
+}
