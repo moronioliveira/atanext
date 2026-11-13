@@ -1,0 +1,43 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.light {
+  color: var(--surface);
+}
+
+.text {
+  display: grid;
+  line-height: 1.1;
+}
+
+.wordmark {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.plus {
+  margin-left: 1px;
+  color: var(--gold);
+}
+
+.tagline {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.light .tagline {
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* Sobre fundo escuro, um contorno sutil separa o símbolo do fundo. */
+.light svg {
+  border-radius: 25%;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.22);
+}

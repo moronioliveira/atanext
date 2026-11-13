@@ -1,182 +1,125 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/server";
-import { sql } from "@/lib/db";
-import { getCurrentMembership, getCurrentUser } from "@/lib/ward";
+import { jsonError, readJsonBody, readString } from "@/lib/api/responses";
+import { isValidEmail, normalizeEmail } from "@/lib/ward";
+import {
+  acceptInvitation,
+  createInvitation,
+  deleteRevokedInvitation,
+  findManagedInvitationStatus,
+  listPendingInvitationsForEmail,
+  listWardInvitations,
+  revokeInvitation,
+} from "@/lib/ward/invitation-repository";
+import { getMembershipForUser, requireLeader, requireUser } from "@/lib/ward/membership";
 
+/**
+ * Líder: lista os convites da ala.
+ * Demais usuários: lista os convites pendentes para o próprio e-mail.
+ */
 export async function GET() {
-  const user = await getCurrentUser();
-  const membership = await getCurrentMembership();
+  const guard = await requireUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
+  const membership = await getMembershipForUser(guard.user.id);
+
   if (membership?.role === "leader") {
-    const invitations = await sql`
-      SELECT
-        wi.id,
-        wi.email,
-        wi.status,
-        wi.created_at AS "createdAt",
-        wm.status AS "memberStatus",
-        wm.role AS "memberRole"
-      FROM ward_invitations wi
-      LEFT JOIN ward_members wm ON wm.invitation_id = wi.id
-      WHERE wi.ward_id = ${membership.wardId}
-      ORDER BY wi.created_at DESC
-    `;
+    const invitations = await listWardInvitations(membership.wardId);
+
     return NextResponse.json({ role: membership.role, invitations });
   }
 
-  const invitations = await sql`
-    SELECT id, email, ward_id AS "wardId"
-    FROM ward_invitations
-    WHERE lower(email) = lower(${user.email}) AND status = 'pending'
-    ORDER BY created_at DESC
-  `;
+  const invitations = await listPendingInvitationsForEmail(guard.user.email);
 
   return NextResponse.json({ role: null, invitations });
 }
 
 export async function POST(request: Request) {
-  const { data: session } = await auth.getSession();
-  const membership = await getCurrentMembership();
+  const guard = await requireLeader("Somente o líder pode convidar.");
 
-  if (!session?.user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
-  if (membership?.role !== "leader") {
-    return NextResponse.json({ error: "Somente o líder pode convidar." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const body = await request.json();
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const email = normalizeEmail(readString(await readJsonBody(request), "email"));
 
-  if (!email || !email.includes("@") || email.length > 320) {
-    return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
+  if (!isValidEmail(email)) {
+    return jsonError("Informe um e-mail válido.", 400);
   }
 
-  await sql`
-    INSERT INTO ward_invitations (ward_id, email, invited_by)
-    VALUES (${membership.wardId}, ${email}, ${session.user.id})
-  `;
+  await createInvitation({
+    wardId: guard.membership.wardId,
+    email,
+    invitedBy: guard.user.id,
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 
+/** Aceita um convite pendente para o e-mail do usuário logado. */
 export async function PATCH(request: Request) {
-  const user = await getCurrentUser();
+  const guard = await requireUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const body = await request.json();
-  const invitationId = typeof body.invitationId === "string" ? body.invitationId : "";
+  const accepted = await acceptInvitation({
+    invitationId: readString(await readJsonBody(request), "invitationId"),
+    userId: guard.user.id,
+    email: guard.user.email,
+  });
 
-  const invitations = await sql`
-    SELECT id, ward_id AS "wardId"
-    FROM ward_invitations
-    WHERE id = ${invitationId}
-      AND lower(email) = lower(${user.email})
-      AND status = 'pending'
-  `;
-
-  const invitation = invitations[0];
-  if (!invitation) {
-    return NextResponse.json({ error: "Convite não encontrado." }, { status: 404 });
+  if (!accepted) {
+    return jsonError("Convite não encontrado.", 404);
   }
-
-  await sql`
-    INSERT INTO ward_members (ward_id, user_id, role, invitation_id)
-    VALUES (${invitation.wardId}, ${user.id}, 'administrator', ${invitation.id})
-    ON CONFLICT (ward_id, user_id) DO UPDATE
-      SET status = 'active',
-          role = 'administrator',
-          invitation_id = ${invitation.id}
-  `;
-  await sql`
-    UPDATE ward_invitations SET status = 'accepted' WHERE id = ${invitation.id}
-  `;
 
   return NextResponse.json({ ok: true });
 }
 
+/**
+ * Líder desvincula um administrador (`action` ausente) ou exclui um
+ * registro já desvinculado (`action: "delete"`).
+ */
 export async function DELETE(request: Request) {
-  const user = await getCurrentUser();
-  const membership = await getCurrentMembership();
+  const guard = await requireLeader("Somente o líder pode desvincular membros.");
 
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 404 });
-  }
-  if (membership.role !== "leader") {
-    return NextResponse.json({ error: "Somente o líder pode desvincular membros." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const body = await request.json().catch(() => null);
-  const invitationId = typeof body?.invitationId === "string" ? body.invitationId : "";
-  const action = body?.action === "delete" ? "delete" : "revoke";
+  const wardId = guard.membership.wardId;
+  const body = await readJsonBody(request);
+  const invitationId = readString(body, "invitationId");
+  const action = readString(body, "action") === "delete" ? "delete" : "revoke";
 
   if (!invitationId) {
-    return NextResponse.json({ error: "Convite inválido." }, { status: 400 });
+    return jsonError("Convite inválido.", 400);
   }
 
-  const rows = await sql`
-    SELECT id, status
-    FROM ward_invitations
-    WHERE id = ${invitationId}
-      AND ward_id = ${membership.wardId}
-      AND status IN ('accepted', 'rejected')
-  `;
+  const status = await findManagedInvitationStatus(wardId, invitationId);
 
-  if (!rows[0]) {
-    return NextResponse.json({ error: "Membro não encontrado." }, { status: 404 });
+  if (!status) {
+    return jsonError("Membro não encontrado.", 404);
   }
 
   if (action === "delete") {
-    if (rows[0].status !== "rejected") {
-      return NextResponse.json(
-        { error: "Somente registros desvinculados podem ser excluídos." },
-        { status: 409 },
-      );
+    if (status !== "rejected") {
+      return jsonError("Somente registros desvinculados podem ser excluídos.", 409);
     }
 
-    await sql`
-      DELETE FROM ward_members
-      WHERE ward_id = ${membership.wardId}
-        AND invitation_id = ${invitationId}
-        AND status = 'revoked'
-    `;
-    await sql`
-      DELETE FROM ward_invitations
-      WHERE id = ${invitationId}
-        AND ward_id = ${membership.wardId}
-        AND status = 'rejected'
-    `;
+    await deleteRevokedInvitation(wardId, invitationId);
 
     return NextResponse.json({ ok: true });
   }
 
-  if (rows[0].status !== "accepted") {
-    return NextResponse.json({ error: "Membro já está desvinculado." }, { status: 409 });
+  if (status !== "accepted") {
+    return jsonError("Membro já está desvinculado.", 409);
   }
 
-  await sql`
-    UPDATE ward_members
-    SET status = 'revoked'
-    WHERE ward_id = ${membership.wardId}
-      AND invitation_id = ${invitationId}
-      AND role = 'administrator'
-      AND status = 'active'
-  `;
-  await sql`
-    UPDATE ward_invitations
-    SET status = 'rejected'
-    WHERE id = ${invitationId}
-  `;
+  await revokeInvitation(wardId, invitationId);
 
   return NextResponse.json({ ok: true });
 }

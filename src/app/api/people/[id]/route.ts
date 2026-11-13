@@ -1,107 +1,61 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { assertAuthConfiguration } from "@/lib/auth/server";
-import { sql } from "@/lib/db";
+import { isUuid, jsonError, readJsonBody, readString } from "@/lib/api/responses";
+import { isUniqueViolation } from "@/lib/database";
 import { normalizePersonName, validatePersonName } from "@/lib/people";
-import { getCurrentMembership } from "@/lib/ward";
+import { deletePerson, renamePerson } from "@/lib/people/people-repository";
+import { requireMembership } from "@/lib/ward/membership";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UNIQUE_VIOLATION = "23505";
+const NOT_FOUND_MESSAGE = "Membro não encontrado nesta ala.";
 
-function isUniqueViolation(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === UNIQUE_VIOLATION
-  );
-}
+export async function PATCH(request: NextRequest, context: RouteContext<"/api/people/[id]">) {
+  const guard = await requireMembership();
 
-function notFound() {
-  return NextResponse.json(
-    { error: "Membro não encontrado nesta ala." },
-    { status: 404 },
-  );
-}
-
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext<"/api/people/[id]">,
-) {
-  assertAuthConfiguration();
-  const membership = await getCurrentMembership();
-
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
   const { id } = await context.params;
 
-  if (!UUID_PATTERN.test(id)) {
-    return notFound();
+  if (!isUuid(id)) {
+    return jsonError(NOT_FOUND_MESSAGE, 404);
   }
 
-  const body = await request.json();
-  const name = normalizePersonName(
-    typeof body.name === "string" ? body.name : "",
-  );
+  const name = normalizePersonName(readString(await readJsonBody(request), "name"));
   const validationError = validatePersonName(name);
 
   if (validationError) {
-    return NextResponse.json({ error: validationError }, { status: 400 });
+    return jsonError(validationError, 400);
   }
 
   try {
-    const people = await sql`
-      UPDATE ward_people
-      SET name = ${name}
-      WHERE id = ${id} AND ward_id = ${membership.wardId}
-      RETURNING id, name
-    `;
+    const person = await renamePerson(guard.membership.wardId, id, name);
 
-    if (people.length === 0) {
-      return notFound();
+    if (!person) {
+      return jsonError(NOT_FOUND_MESSAGE, 404);
     }
 
-    return NextResponse.json({ person: people[0] });
+    return NextResponse.json({ person });
   } catch (error) {
     if (isUniqueViolation(error)) {
-      return NextResponse.json(
-        { error: "Já existe um membro com este nome." },
-        { status: 409 },
-      );
+      return jsonError("Já existe um membro com este nome.", 409);
     }
 
     throw error;
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  context: RouteContext<"/api/people/[id]">,
-) {
-  assertAuthConfiguration();
-  const membership = await getCurrentMembership();
+export async function DELETE(_request: NextRequest, context: RouteContext<"/api/people/[id]">) {
+  const guard = await requireMembership();
 
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
   const { id } = await context.params;
 
-  if (!UUID_PATTERN.test(id)) {
-    return notFound();
+  if (!isUuid(id) || !(await deletePerson(guard.membership.wardId, id))) {
+    return jsonError(NOT_FOUND_MESSAGE, 404);
   }
 
-  const people = await sql`
-    DELETE FROM ward_people
-    WHERE id = ${id} AND ward_id = ${membership.wardId}
-    RETURNING id
-  `;
-
-  if (people.length === 0) {
-    return notFound();
-  }
-
-  return NextResponse.json({ deleted: people[0].id });
+  return NextResponse.json({ deleted: id });
 }

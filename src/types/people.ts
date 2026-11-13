@@ -3,6 +3,7 @@ export type Person = {
   name: string;
 };
 
-export type PersonActionResult = {
+/** Resultado de uma ação no navegador: `error` vem preenchido quando ela falha. */
+export type ActionResult = {
   error: string | null;
 };
