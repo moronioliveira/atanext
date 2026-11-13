@@ -1,0 +1,16 @@
+.container {
+  flex: 1 0 auto;
+  align-content: start;
+  display: grid;
+  gap: var(--space-6);
+  width: min(var(--content-width), calc(100% - 32px));
+  margin: 0 auto;
+  padding: var(--space-8) 0 var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .container {
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+}

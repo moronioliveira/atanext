@@ -1,32 +1,17 @@
 @import "tailwindcss";
 
-:root {
-  --ink: #102a43;
-  --muted: #627d98;
-  --line: #d9e2ec;
-  --surface: #ffffff;
-  --canvas: #f5f8fb;
-  --blue: #006d8f;
-  --cyan: #00a7c7;
-  --gold: #f6b73c;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  color: var(--ink);
-  background: var(--canvas);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
+/*
+ * Somente o Tailwind e a ponte dos tokens para utilitários (ex.: text-ink).
+ * Os tokens ficam em src/styles/tokens.css e o reset em src/styles/base.css,
+ * ambos importados no layout raiz.
+ */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-blue: var(--blue);
+  --color-cyan: var(--cyan);
+  --color-gold: var(--gold);
 }

@@ -1,97 +1,48 @@
 import { NextResponse } from "next/server";
-import { assertAuthConfiguration, auth } from "@/lib/auth/server";
-import { sql } from "@/lib/db";
+import { jsonError, readJsonBody } from "@/lib/api/responses";
+import { isMonthKey, parsePlanPayload } from "@/lib/meeting";
+import { findPlan, savePlanWithPeople } from "@/lib/meeting/plan-repository";
 import { collectPersonNames } from "@/lib/people";
-import { getCurrentMembership } from "@/lib/ward";
-import type { SundaySchedule } from "@/types/meeting";
-import { meetingRoles } from "@/types/meeting";
-
-function isValidSchedule(value: unknown): value is SundaySchedule {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const schedule = value as Record<string, unknown>;
-  return meetingRoles.every(
-    ({ key }) =>
-      typeof schedule[key] === "string" && schedule[key].length <= 500,
-  );
-}
+import { requireMembership } from "@/lib/ward/membership";
 
 export async function GET(request: Request) {
-  assertAuthConfiguration();
-  const membership = await getCurrentMembership();
+  const guard = await requireMembership();
 
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
   const month = new URL(request.url).searchParams.get("month");
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json({ error: "Mês inválido." }, { status: 400 });
+
+  if (!isMonthKey(month)) {
+    return jsonError("Mês inválido.", 400);
   }
 
-  const rows = await sql`
-    SELECT id, sundays, updated_at AS "updatedAt"
-    FROM meeting_plans
-    WHERE ward_id = ${membership.wardId} AND month = ${`${month}-01`}
-  `;
+  const plan = await findPlan(guard.membership.wardId, month);
 
-  return NextResponse.json({ plan: rows[0] ?? null });
+  return NextResponse.json({ plan });
 }
 
 export async function PUT(request: Request) {
-  assertAuthConfiguration();
-  const { data: session } = await auth.getSession();
-  const membership = await getCurrentMembership();
+  const guard = await requireMembership();
 
-  if (!session?.user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const body = await request.json();
-  const month = typeof body.month === "string" ? body.month : "";
-  const sundays = body.sundays as unknown;
+  const payload = parsePlanPayload(await readJsonBody(request));
 
-  if (
-    !/^\d{4}-(0[1-9]|1[0-2])$/.test(month) ||
-    !Array.isArray(sundays) ||
-    sundays.length !== 5 ||
-    !sundays.every(isValidSchedule)
-  ) {
-    return NextResponse.json({ error: "Dados do planejamento inválidos." }, { status: 400 });
+  if (!payload) {
+    return jsonError("Dados do planejamento inválidos.", 400);
   }
 
-  const personNames = collectPersonNames(sundays);
-
-  // O planejamento e os novos membros são gravados juntos: se um falhar,
-  // nenhum dos dois é salvo.
-  const [planRows, addedPeople] = await sql.transaction([
-    sql`
-      INSERT INTO meeting_plans (ward_id, month, sundays, created_by)
-      VALUES (
-        ${membership.wardId},
-        ${`${month}-01`},
-        ${JSON.stringify(sundays)},
-        ${session.user.id}
-      )
-      ON CONFLICT (ward_id, month)
-      DO UPDATE SET sundays = EXCLUDED.sundays, updated_at = now()
-      RETURNING id, updated_at AS "updatedAt"
-    `,
-    sql`
-      INSERT INTO ward_people (ward_id, name)
-      SELECT ${membership.wardId}, unnest(${personNames}::text[])
-      ON CONFLICT (ward_id, lower(name)) DO NOTHING
-      RETURNING id, name
-    `,
-  ]);
-
-  return NextResponse.json({
-    plan: planRows[0],
-    addedPeople,
+  const { plan, addedPeople } = await savePlanWithPeople({
+    wardId: guard.membership.wardId,
+    userId: guard.user.id,
+    month: payload.month,
+    sundays: payload.sundays,
+    personNames: collectPersonNames(payload.sundays),
   });
+
+  return NextResponse.json({ plan, addedPeople });
 }

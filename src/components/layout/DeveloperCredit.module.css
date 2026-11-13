@@ -1,0 +1,29 @@
+.credit {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.credit a {
+  color: var(--ink-soft);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.credit a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.light {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.light a {
+  color: var(--surface);
+}
+
+@media print {
+  .credit {
+    display: none;
+  }
+}

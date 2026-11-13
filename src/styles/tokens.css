@@ -1,0 +1,59 @@
+/*
+ * Tokens visuais do Atas+. Ajuste a identidade aqui, nunca nos componentes.
+ * A paleta oficial é ink / blue / cyan / gold; os tons "soft" são variações
+ * claras usadas em fundos de destaque.
+ */
+:root {
+  /* Paleta oficial */
+  --ink: #102a43;
+  --ink-soft: #243b53;
+  --muted: #627d98;
+  --line: #d9e2ec;
+  --line-strong: #bcccdc;
+  --surface: #ffffff;
+  --canvas: #f5f8fb;
+  --blue: #006d8f;
+  --blue-strong: #00566f;
+  --blue-soft: #e5f3f7;
+  --cyan: #00a7c7;
+  --cyan-soft: #e0f6fa;
+  --gold: #f6b73c;
+  --gold-soft: #fdf3dc;
+
+  /* Estados */
+  --success: #0b7a52;
+  --success-soft: #e6f5ee;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --danger-line: #f4c7c3;
+
+  /* Tipografia */
+  --font-body: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  /* Espaçamento, bordas e sombras */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgb(16 42 67 / 0.06);
+  --shadow-md: 0 8px 24px rgb(16 42 67 / 0.08);
+  --shadow-lg: 0 20px 48px rgb(16 42 67 / 0.16);
+  --focus-ring: 0 0 0 3px rgb(0 167 199 / 0.35);
+
+  /* Layout */
+  --content-width: 1180px;
+  --header-height: 64px;
+}

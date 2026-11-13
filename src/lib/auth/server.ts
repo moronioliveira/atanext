@@ -12,8 +12,6 @@ export const auth = createNeonAuth({
 
 export function assertAuthConfiguration() {
   if (!baseUrl || !cookieSecret) {
-    throw new Error(
-      "NEON_AUTH_BASE_URL e NEON_AUTH_COOKIE_SECRET precisam estar configuradas.",
-    );
+    throw new Error("NEON_AUTH_BASE_URL e NEON_AUTH_COOKIE_SECRET precisam estar configuradas.");
   }
 }

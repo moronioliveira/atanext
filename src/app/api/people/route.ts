@@ -1,58 +1,40 @@
 import { NextResponse } from "next/server";
-import { assertAuthConfiguration } from "@/lib/auth/server";
-import { sql } from "@/lib/db";
+import { jsonError, readJsonBody, readString } from "@/lib/api/responses";
 import { normalizePersonName, validatePersonName } from "@/lib/people";
-import { getCurrentMembership } from "@/lib/ward";
+import { insertPerson, listPeople } from "@/lib/people/people-repository";
+import { requireMembership } from "@/lib/ward/membership";
 
 export async function GET() {
-  assertAuthConfiguration();
-  const membership = await getCurrentMembership();
+  const guard = await requireMembership();
 
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const people = await sql`
-    SELECT id, name
-    FROM ward_people
-    WHERE ward_id = ${membership.wardId}
-    ORDER BY lower(name)
-  `;
+  const people = await listPeople(guard.membership.wardId);
 
   return NextResponse.json({ people });
 }
 
 export async function POST(request: Request) {
-  assertAuthConfiguration();
-  const membership = await getCurrentMembership();
+  const guard = await requireMembership();
 
-  if (!membership) {
-    return NextResponse.json({ error: "Ala não encontrada." }, { status: 403 });
+  if (!guard.ok) {
+    return guard.response;
   }
 
-  const body = await request.json();
-  const name = normalizePersonName(
-    typeof body.name === "string" ? body.name : "",
-  );
+  const name = normalizePersonName(readString(await readJsonBody(request), "name"));
   const validationError = validatePersonName(name);
 
   if (validationError) {
-    return NextResponse.json({ error: validationError }, { status: 400 });
+    return jsonError(validationError, 400);
   }
 
-  const people = await sql`
-    INSERT INTO ward_people (ward_id, name)
-    VALUES (${membership.wardId}, ${name})
-    ON CONFLICT (ward_id, lower(name)) DO NOTHING
-    RETURNING id, name
-  `;
+  const person = await insertPerson(guard.membership.wardId, name);
 
-  if (people.length === 0) {
-    return NextResponse.json(
-      { error: "Este membro já está cadastrado." },
-      { status: 409 },
-    );
+  if (!person) {
+    return jsonError("Este membro já está cadastrado.", 409);
   }
 
-  return NextResponse.json({ person: people[0] }, { status: 201 });
+  return NextResponse.json({ person }, { status: 201 });
 }
