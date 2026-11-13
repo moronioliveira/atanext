@@ -1,7 +1,9 @@
 import { createNeonAuth } from "@neondatabase/auth/next/server";
 
-const baseUrl = process.env.NEON_AUTH_BASE_URL;
-const cookieSecret = process.env.NEON_AUTH_COOKIE_SECRET;
+// Variável vazia conta como ausente. Os valores substitutos só existem para o
+// build não quebrar; em uma requisição, `assertAuthConfiguration` recusa o uso.
+const baseUrl = process.env.NEON_AUTH_BASE_URL || undefined;
+const cookieSecret = process.env.NEON_AUTH_COOKIE_SECRET || undefined;
 
 export const auth = createNeonAuth({
   baseUrl: baseUrl ?? "https://auth-not-configured.invalid",

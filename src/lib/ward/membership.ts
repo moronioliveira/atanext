@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { assertAuthConfiguration, auth } from "@/lib/auth/server";
 import { jsonError } from "@/lib/api/responses";
 import { sql } from "@/lib/database";
@@ -50,6 +51,9 @@ type MembershipGuard =
 
 /** Exige uma sessão ativa (401 quando não houver). */
 export async function requireUser(): Promise<UserGuard> {
+  // Rotas autenticadas nunca são pré-geradas no build: tudo abaixo roda só
+  // quando chega uma requisição (e o build não depende das variáveis de auth).
+  await connection();
   assertAuthConfiguration();
   const user = await getCurrentUser();
 
