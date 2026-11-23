@@ -7,8 +7,14 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { withTimeout } from "@/lib/async/timeout";
 import { authClient } from "@/lib/auth/client";
-import { AUTH_CONNECTION_ERROR, PASSWORD_MIN_LENGTH, SIGN_IN_ERROR } from "../errors";
+import {
+  AUTH_REQUEST_TIMEOUT_MS,
+  getSignInErrorMessage,
+  getThrownSignInErrorMessage,
+  PASSWORD_MIN_LENGTH,
+} from "../errors";
 import styles from "./AuthForm.module.css";
 
 export function SignInForm() {
@@ -24,18 +30,21 @@ export function SignInForm() {
     setError("");
 
     try {
-      const result = await authClient.signIn.email({ email, password });
+      const result = await withTimeout(
+        authClient.signIn.email({ email, password }),
+        AUTH_REQUEST_TIMEOUT_MS,
+      );
 
       if (result.error) {
-        setError(SIGN_IN_ERROR);
+        setError(getSignInErrorMessage(result.error));
         setPending(false);
         return;
       }
 
       router.push("/");
       router.refresh();
-    } catch {
-      setError(AUTH_CONNECTION_ERROR);
+    } catch (error) {
+      setError(getThrownSignInErrorMessage(error));
       setPending(false);
     }
   }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { authClient } from "@/lib/auth/client";
 import { normalizeEmail } from "@/lib/ward";
-import { AUTH_CONNECTION_ERROR, getSignUpErrorMessage, PASSWORD_MIN_LENGTH } from "../errors";
+import { getSignUpErrorMessage, getThrownSignUpErrorMessage, PASSWORD_MIN_LENGTH } from "../errors";
 import styles from "./AuthForm.module.css";
 
 /** Garante a sessão logo após o cadastro (alguns provedores não logam automaticamente). */
@@ -59,8 +59,8 @@ export function SignUpForm() {
 
       router.push("/onboarding");
       router.refresh();
-    } catch {
-      setError(AUTH_CONNECTION_ERROR);
+    } catch (error) {
+      setError(getThrownSignUpErrorMessage(error));
       setPending(false);
     }
   }
