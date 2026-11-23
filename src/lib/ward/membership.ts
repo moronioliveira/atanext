@@ -1,24 +1,41 @@
 import { connection } from "next/server";
 import { assertAuthConfiguration, auth } from "@/lib/auth/server";
+import {
+  classifySessionResult,
+  type SessionCheck,
+  type SessionUser,
+} from "@/lib/auth/session-check";
 import { jsonError } from "@/lib/api/responses";
 import { sql } from "@/lib/database";
 import type { WardMembership } from "@/types/ward";
 
 /** Somente servidor: identifica o usuário e a ala da requisição atual. */
 
-export type SessionUser = {
-  id: string;
-  email: string;
-};
+export type { SessionUser };
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
-  const { data: session, error } = await auth.getSession();
+const AUTH_UNAVAILABLE_MESSAGE =
+  "Não foi possível verificar seu acesso agora. Aguarde alguns instantes e tente novamente.";
 
-  if (error || !session?.user) {
-    return null;
+/**
+ * Verifica a sessão da requisição atual. Uma falha do serviço de autenticação
+ * volta como `unavailable`, nunca como sessão ausente.
+ */
+export async function checkCurrentSession(): Promise<SessionCheck> {
+  let check: SessionCheck;
+
+  try {
+    check = classifySessionResult(await auth.getSession());
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : "erro desconhecido";
+
+    check = { status: "unavailable", reason };
   }
 
-  return session.user;
+  if (check.status === "unavailable") {
+    console.warn(`[auth] Verificação de sessão indisponível (${check.reason}).`);
+  }
+
+  return check;
 }
 
 export async function getMembershipForUser(userId: string): Promise<WardMembership | null> {
@@ -38,30 +55,32 @@ export async function getMembershipForUser(userId: string): Promise<WardMembersh
   return (rows[0] as WardMembership | undefined) ?? null;
 }
 
-export async function getCurrentMembership() {
-  const user = await getCurrentUser();
-
-  return user ? getMembershipForUser(user.id) : null;
-}
-
 type UserGuard = { ok: true; user: SessionUser } | { ok: false; response: Response };
 
 type MembershipGuard =
   { ok: true; user: SessionUser; membership: WardMembership } | { ok: false; response: Response };
 
-/** Exige uma sessão ativa (401 quando não houver). */
+/**
+ * Exige uma sessão ativa: 401 quando não houver sessão e 503 quando o serviço
+ * de autenticação não responder (o cliente mostra "tentar novamente" em vez
+ * de mandar o usuário de volta ao login).
+ */
 export async function requireUser(): Promise<UserGuard> {
   // Rotas autenticadas nunca são pré-geradas no build: tudo abaixo roda só
   // quando chega uma requisição (e o build não depende das variáveis de auth).
   await connection();
   assertAuthConfiguration();
-  const user = await getCurrentUser();
+  const session = await checkCurrentSession();
 
-  if (!user) {
+  if (session.status === "unavailable") {
+    return { ok: false, response: jsonError(AUTH_UNAVAILABLE_MESSAGE, 503) };
+  }
+
+  if (session.status === "signedOut") {
     return { ok: false, response: jsonError("Não autenticado.", 401) };
   }
 
-  return { ok: true, user };
+  return { ok: true, user: session.user };
 }
 
 /**

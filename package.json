@@ -17,7 +17,7 @@
     "@neon/config": "^1.10.0",
     "@neondatabase/auth": "^0.6.0-beta",
     "@neondatabase/serverless": "^1.2.0",
-    "next": "16.4.4",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -31,11 +31,16 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.4.4",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^31.0.0",
     "prettier": "^3.10.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "zod": "4.6.7",
+    "better-auth": "1.7.7",
+    "@better-auth/core": "1.7.7"
   }
 }

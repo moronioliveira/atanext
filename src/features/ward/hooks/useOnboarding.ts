@@ -26,6 +26,19 @@ export function useOnboarding() {
     async function loadInvitation() {
       const session = await authClient.getSession();
 
+      // Falha do serviço de autenticação não significa sessão ausente:
+      // mostra o erro em vez de mandar o usuário de volta ao login.
+      if (session.error) {
+        if (active) {
+          setError(
+            "Não foi possível verificar seu acesso agora. Recarregue a página em instantes.",
+          );
+          setChecking(false);
+        }
+
+        return;
+      }
+
       if (!session.data?.user) {
         router.replace("/auth/sign-in");
         return;
